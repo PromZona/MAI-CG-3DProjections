@@ -33,7 +33,7 @@ namespace Application
             return raylib::Vector3(x, y, z);
         }
 
-        void Draw(std::vector<raylib::Vector3> &vec, int shift)
+        void DrawSurface(std::vector<raylib::Vector3> &vec, int shift)
         {
             std::vector<raylib::Vector3> buf = {vec[indecies[0]], vec[indecies[1]], vec[indecies[2]]};
             
@@ -52,17 +52,18 @@ namespace Application
             float l = sqrtf(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
             normal.x /= l; normal.y /= l; normal.z /= l;
 
-            
-                DrawText(TextFormat("%02i f: (%03.0f, %03.0f, %03.0f) s: (%03.0f, %03.0f, %03.0f) t: (%03.0f, %03.0f, %03.0f)", 
-                id, first.x, first.y, first.z, second.x, second.y, second.z, third.x, third.y, third.z),
-                25, shift, 18, color);
-                DrawTriangle((raylib::Vector2){first.x, first.y},
-                             (raylib::Vector2){second.x, second.y},
-                             (raylib::Vector2){third.x, third.y},
-                             color);
+            // Debug info
+            // DrawText(TextFormat("%02i f: (%03.0f, %03.0f, %03.0f) s: (%03.0f, %03.0f, %03.0f) t: (%03.0f, %03.0f, %03.0f)", 
+            // id, first.x, first.y, first.z, second.x, second.y, second.z, third.x, third.y, third.z),
+            // 25, shift, 18, color);
+
+            DrawTriangle((raylib::Vector2){first.x, first.y},
+                         (raylib::Vector2){second.x, second.y},
+                         (raylib::Vector2){third.x, third.y},
+                         color);
         }
     
-        void DrawEdge(std::vector<raylib::Vector3> &vec, bool all)
+        void DrawEdges(std::vector<raylib::Vector3> &vec, bool all)
         {
             std::vector<raylib::Vector3> buf = {vec[indecies[0]], vec[indecies[1]], vec[indecies[2]]};
             
@@ -110,7 +111,10 @@ namespace Application
         std::vector<Polygon> polygons;
 
         float angle = 0;
+        float distance = 5;
         bool isAllEdges = true;
+        bool PerspectiveMode = false;
+
     public:
         App(int w, int h);
         ~App();

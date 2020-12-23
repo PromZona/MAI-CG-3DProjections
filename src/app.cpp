@@ -37,9 +37,24 @@ namespace Application
             angle -= 0.01;
         }
 
+        if (IsKeyDown(KEY_UP))
+        {
+            distance += 0.01;
+        }
+
+        if (IsKeyDown(KEY_DOWN))
+        {
+            distance -= 0.01;
+        }
+
         if (IsKeyReleased(KEY_O))
         {
             isAllEdges = !isAllEdges;
+        }
+
+        if (IsKeyReleased(KEY_P))
+        {
+            PerspectiveMode = !PerspectiveMode;
         }
     }
 
@@ -65,16 +80,30 @@ namespace Application
 
         for (auto &&pol : polygons)
         {
-            pol.Draw(points, shift);
-            
+            pol.DrawSurface(points, shift);
             shift += 40;
         }
 
         for (auto &&pol : polygons)
         {
-            pol.DrawEdge(points, isAllEdges);
+            pol.DrawEdges(points, isAllEdges);
         }
         
+        // Control tips
+        DrawText("Arrows LR - rotate. Arrow UD - change distance. O - toogle edges. P - Change perspective", 10, Height - 20, 18, raylib::Color::White);
+        
+        // State info
+        DrawText(TextFormat("Distance: %03.1f", distance), Width - 300, 50, 20, raylib::Color::White);
+        DrawText(TextFormat("Angle: %03.1f", angle), Width - 300, 80, 20, raylib::Color::White);
+        if (PerspectiveMode)
+        {
+            DrawText("Show mode: Perspective", Width - 300, 110, 20, raylib::Color::Green);
+        }
+        else
+        {
+            DrawText("Show mode: Orthographic", Width - 300, 110, 20, raylib::Color::Yellow);
+        }
+
         EndDrawing();
     }
 
@@ -82,8 +111,12 @@ namespace Application
     {
         points.clear();
 
-        int Radius = 100;
-        points.push_back((Vector3){0, 0, 0}); // Center of pentagon
+        int Radius = 1;
+        if (!PerspectiveMode)
+            Radius *= 100;
+
+        float distance = 0;
+        points.push_back((Vector3){0, 0, distance}); // Center of pentagon
 
         // Pentagon
         for (int i = 0; i < 360; i += 72)
@@ -91,18 +124,13 @@ namespace Application
             float x = Radius * cos(i * PI / 180);
             float z = Radius * sin(i * PI / 180);
 
-            points.push_back((Vector3){x, 0, z});
+            points.push_back((Vector3){x, 0, distance + z});
         }
 
         float pentagon_side = Radius * 1.17557f;
         float pentagon_height = tan(72 * PI / 180) / 2 * pentagon_side;
-        points.push_back((Vector3){0, pentagon_height, 0}); // Top of pentagon
+        points.push_back((Vector3){0, pentagon_height, distance}); // Top of pentagon
 
-        for (auto &&p : points)
-        {
-            p.z += 1;
-        }
-        
     }
 
     void App::Rotate()
@@ -193,18 +221,39 @@ namespace Application
             {0, 1, 0}
         };
 
+        float fNear = 0.1f;
+        float fFar = 1000.0f;
+        float fFov = 90.0f;
+        float fAspectRatio = (float)Height / (float)Width;
+        float fFovRad = 1.0f / tanf(fFov * 0.5f / 180.0f * PI);
+        float PerspectiveProjection[4][4] = { 0 };
+        PerspectiveProjection[0][0] = fAspectRatio * fFovRad;
+        PerspectiveProjection[1][1] = fFovRad;
+        PerspectiveProjection[2][2] = fFar / (fFar / fNear);
+        PerspectiveProjection[3][2] = (-fFar * fNear) / (fFar - fNear);
+        PerspectiveProjection[2][3] = 1.0f;
+        PerspectiveProjection[3][3] = 0.0f;
+
         for (auto &&point : points)
         {
-            float distance = 1;
-            float z = 1 / (distance - point.z);
-            float PerspectiveProjection[2][3] = {
-                {z, 0, 0},
-                {0, z, 0}
-            };
+            // Ortho projection
+            if (!PerspectiveMode)
+            {
+                point = Application::Matrix::Multiply3x3(OrthoProjection, point);
+                point.x += Width / 2;
+                point.y += Height / 2; 
+            }
 
-            point = Application::Matrix::Multiply3x3(PerspectiveProjection, point);
-            point.x += Width / 2;
-            point.y += Height / 2;
+            // Perspective projection
+            if (PerspectiveMode)
+            {
+                point.z += this->distance;
+                point = Application::Matrix::Multiply4x4(PerspectiveProjection, point);
+                point.x += 1.0f; point.y += 1.0f;
+                point.x *= 0.5f * (float)Width;
+                point.y *= 0.5f * (float)Height;    
+            }        
+
             DrawCircle(point.x, point.y, 2, raylib::Color::Red);
         }
     }
